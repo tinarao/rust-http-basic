@@ -14,18 +14,21 @@ impl Server {
 
     pub fn handle_connection(mut stream: TcpStream) {
         let buf_reader = BufReader::new(&mut stream);
-        let _req_data: Vec<_> = buf_reader
-            .lines()
-            .map(|result| result.unwrap())
-            .take_while(|line| !line.is_empty())
-            .collect();
+        let req_line = buf_reader.lines().next().unwrap().unwrap();
 
-        let status_line = "HTTP/1.1 200 OK";
-        let contents = fs::read_to_string("src/index.html").unwrap();
-        let length = contents.len();
+        let contents: String;
+        let content_len: usize;
 
-        let res = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
+        let (status_line, filename) = if req_line == "GET / HTTP/1.1" {
+            ("HTTP/1.1 200 OK", "src/static/index.html")
+        } else {
+            ("HTTP/1.1 404 NOT FOUND", "src/static/404.html")
+        };
 
+        contents = fs::read_to_string(filename).unwrap();
+        content_len = contents.len();
+
+        let res = format!("{status_line}\r\nContent-Length: {content_len}\r\n\r\n{contents}");
         stream.write_all(res.as_bytes()).unwrap();
     }
 
