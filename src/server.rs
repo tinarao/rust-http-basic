@@ -1,6 +1,11 @@
-use std::fs;
-use std::io::{prelude::*, BufReader};
-use std::net::{TcpListener, TcpStream};
+use std::{
+    fs,
+    io::{prelude::*, BufReader},
+    net::{TcpListener, TcpStream},
+};
+
+use http::ThreadPool;
+
 pub struct Server {
     port: String,
 }
@@ -35,13 +40,14 @@ impl Server {
     pub fn run(&self) {
         let addr = ["127.0.0.1:", &self.port].join("");
         let listener = TcpListener::bind(addr).unwrap();
+
+        let pool = ThreadPool::new(4);
         println!("Serving at `:{}`", self.port);
 
         for stream in listener.incoming() {
             let stream = stream.unwrap();
 
-            println!("Incoming request!");
-            Self::handle_connection(stream);
+            pool.execute(|| Self::handle_connection(stream));
         }
     }
 }
